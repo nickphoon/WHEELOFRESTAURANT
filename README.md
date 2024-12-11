@@ -2,6 +2,8 @@
 
 Spin the wheel for Restaurants near you! 🛞😋🍧
 
+Location of Restaurants is wonk , in the midst of cooking... 🧑‍🍳
+
 ## Built With
 
 [![Html][Html.com]][Html-url] [![Css][Css.com]][Css-url] [![Javascript][Javascript.com]][Javascript-url]
