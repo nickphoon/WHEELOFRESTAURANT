@@ -1,8 +1,8 @@
 
-        import { Wheel } from 'https://cdn.jsdelivr.net/npm/spin-wheel@5.0.2/dist/spin-wheel-esm.js';
-        let isSpinning = false;
-        let map, userMarker, nearbyRestaurants = [];
-        let selectedMarker = null; // To store the red marker
+import { Wheel } from 'https://cdn.jsdelivr.net/npm/spin-wheel@5.0.2/dist/spin-wheel-esm.js';
+let isSpinning = false;
+let map, userMarker, nearbyRestaurants = [];
+let selectedMarker = null; // To store the red marker
 let restaurantMarkers = []; // Store all restaurant markers for clearing later
 const redIcon = L.icon({
     iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
@@ -22,44 +22,46 @@ const blueIcon = L.icon({
     iconAnchor: [16, 32]
 });
 
+const colorPattern = ["#f28c28", "#c5e0b4", "#ffc000", "#ed7d31", "#a9d18e", "#4472c4", "#70ad47", "#d9d9d9", "#ff9da7", "#c55a11"];
+
 const props = {
     items: [],
-    itemBackgroundColors: ["#A7586C", "#B87A8A"],
-    itemLabelColors: ["#FFFFFF"],
+    itemBackgroundColors: [], // Colors for slices (dynamically populated)
+    itemLabelColors: ["#000000"], // Change text color to black for readability
+    textSize: 20, // Adjust the text size for better visibility
+    textFont: "Arial", // Use a clean and readable font
     isInteractive: false,
     pointerAngle: 180,
     onRest: (event) => {
-    const chosenLabel = document.getElementById('chosenLabel');
-    const winningItem = props.items[event.currentIndex];
+        const chosenLabel = document.getElementById('chosenLabel');
+        const winningItem = props.items[event.currentIndex];
 
-    // Reset all restaurant markers to blue
-    restaurantMarkers.forEach(marker => marker.setIcon(blueIcon));
+        // Reset all restaurant markers to blue
+        restaurantMarkers.forEach(marker => marker.setIcon(blueIcon));
 
-    // Get the restaurant details
-    const restaurant = nearbyRestaurants.find(r => r.name === winningItem.label);
-    if (restaurant) {
-        const [lng, lat] = restaurant.coordinates;
+        // Get the restaurant details
+        const restaurant = nearbyRestaurants.find(r => r.name === winningItem.label);
+        if (restaurant) {
+            const [lng, lat] = restaurant.coordinates;
 
-        // Set the chosen restaurant's marker to green
-        const chosenMarker = restaurantMarkers.find(marker => marker.getLatLng().lat === lat && marker.getLatLng().lng === lng);
-        if (chosenMarker) {
-            chosenMarker.setIcon(greenIcon);
+            // Set the chosen restaurant's marker to green
+            const chosenMarker = restaurantMarkers.find(marker => marker.getLatLng().lat === lat && marker.getLatLng().lng === lng);
+            if (chosenMarker) {
+                chosenMarker.setIcon(greenIcon);
+            }
+
+            // Create a Google Maps link for the restaurant
+            const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+            // Display the restaurant name as a clickable hyperlink
+            chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... <a href="${googleMapsUrl}" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">${winningItem.label}</a>`;
+        } else {
+            chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... ${winningItem.label}`;
         }
-
-        // Create a Google Maps link for the restaurant
-        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-
-        // Display the restaurant name as a clickable hyperlink
-        chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... <a href="${googleMapsUrl}" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">${winningItem.label}</a>`;
-    } else {
-        chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... ${winningItem.label}`;
     }
-    
-}
-
-
-
 };
+
+
 
 // Function to load restaurants from the JSON file
 async function loadRestaurants() {
@@ -92,8 +94,18 @@ async function loadRestaurants() {
 
 // Initialize the map with Leaflet.js
 function initMap(userLocation) {
+    // Ensure the map container is present
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+        console.error("Map container not found!");
+        return;
+    }
+
     // Initialize the Leaflet map
-    map = L.map('map').setView([userLocation.lat, userLocation.lng], 15);
+    map = L.map('map', {
+        center: [userLocation.lat, userLocation.lng],
+        zoom: 15
+    });
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -103,6 +115,14 @@ function initMap(userLocation) {
     // Add a marker for the user's location
     userMarker = L.marker([userLocation.lat, userLocation.lng]).addTo(map).bindPopup('Your Location').openPopup();
 
+    // Force the map to resize after rendering
+    setTimeout(() => {
+        if (map) {
+            console.log("Invalidating map size...");
+            map.invalidateSize();
+        }
+    }, 300); // Increase timeout to ensure container is fully rendered
+
     // Load restaurants first, then apply filters
     loadRestaurants().then(restaurants => {
         nearbyRestaurants = restaurants; // Cache the restaurants
@@ -111,31 +131,28 @@ function initMap(userLocation) {
 
     // Allow the user to click on the map to select a new location
     map.on("click", (event) => {
-    if (isSpinning) {
-        // Prevent interaction if the wheel is spinning
-        alert("You cannot change the location while the wheel is spinning!");
-        return;
-    }
+        if (isSpinning) {
+            alert("You cannot change the location while the wheel is spinning!");
+            return;
+        }
 
-    const { lat, lng } = event.latlng;
+        const { lat, lng } = event.latlng;
 
-    // Update the user's marker
-    if (userMarker) {
-        userMarker.setLatLng([lat, lng]).setIcon(redIcon).bindPopup('Selected Location').openPopup();
-    } else {
-        userMarker = L.marker([lat, lng], { icon: redIcon }).addTo(map).bindPopup('Selected Location').openPopup();
-    }
+        if (userMarker) {
+            userMarker.setLatLng([lat, lng]).setIcon(redIcon).bindPopup('Selected Location').openPopup();
+        } else {
+            userMarker = L.marker([lat, lng], { icon: redIcon }).addTo(map).bindPopup('Selected Location').openPopup();
+        }
 
-    // Update the selected location text
-    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-    document.getElementById('selectedLocation').innerHTML = `Selected Location: <a href="${googleMapsUrl}" target="_blank">${googleMapsUrl}</a>`;
+        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        document.getElementById('selectedLocation').innerHTML = `Selected Location: <a href="${googleMapsUrl}" target="_blank">${googleMapsUrl}</a>`;
 
-    // Reapply filters for the new location
-    clearRestaurantMarkers();
-    applyFilters({ lat, lng });
-});
-
+        clearRestaurantMarkers();
+        applyFilters({ lat, lng });
+    });
 }
+
+
 
 // Apply filters to find and display nearby restaurants
 async function applyFilters(userLocation) {
@@ -198,8 +215,8 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -209,14 +226,20 @@ let wheel;
 function refreshWheel() {
     const container = document.querySelector('.wheel-container');
     container.innerHTML = ""; // Clear the existing wheel
+
+    // Dynamically assign colors based on the number of restaurants
+    props.itemBackgroundColors = props.items.map((_, index) => colorPattern[index % colorPattern.length]);
+
     if (props.items.length > 0) {
         wheel = new Wheel(container, props); // Recreate the wheel with updated props
     }
-     // Add the pointer back
-     const pointer = document.createElement('div');
+
+    // Add the pointer back
+    const pointer = document.createElement('div');
     pointer.className = 'pointer';
     container.appendChild(pointer);
 }
+
 function updateSelectedLocation(lat, lng) {
     // Update the user's marker
     if (userMarker) {
@@ -282,52 +305,52 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     // Utility function to enable or disable buttons
-function toggleButtons(disabled) {
-    document.getElementById('spinButton').disabled = disabled;
-    document.getElementById('useCurrentLocation').disabled = disabled;
-    document.getElementById('proximity').disabled = disabled;
-    document.getElementById('count').disabled = disabled;
+    function toggleButtons(disabled) {
+        document.getElementById('spinButton').disabled = disabled;
+        document.getElementById('useCurrentLocation').disabled = disabled;
+        document.getElementById('proximity').disabled = disabled;
+        document.getElementById('count').disabled = disabled;
 
-    const buttons = document.querySelectorAll('button, select');
-    buttons.forEach(button => {
-        button.style.opacity = disabled ? 0.5 : 1; // Add visual feedback
-        button.style.pointerEvents = disabled ? "none" : "auto";
-    });
-    
-}
+        const buttons = document.querySelectorAll('button, select');
+        buttons.forEach(button => {
+            button.style.opacity = disabled ? 0.5 : 1; // Add visual feedback
+            button.style.pointerEvents = disabled ? "none" : "auto";
+        });
+
+    }
 
     // Modify the spin button event listener
     document.getElementById('spinButton').addEventListener('click', () => {
-    const chosenLabel = document.getElementById('chosenLabel');
-    chosenLabel.innerHTML = '';
+        const chosenLabel = document.getElementById('chosenLabel');
+        chosenLabel.innerHTML = '';
 
-    if (props.items.length > 0) {
-        const duration = 4000; // Spin duration in milliseconds
-        const winningItemIndex = Math.floor(Math.random() * props.items.length);
+        if (props.items.length > 0) {
+            const duration = 4000; // Spin duration in milliseconds
+            const winningItemIndex = Math.floor(Math.random() * props.items.length);
 
-        // Disable buttons and map interactions before spinning
-        toggleButtons(true);
-        isSpinning = true;
+            // Disable buttons and map interactions before spinning
+            toggleButtons(true);
+            isSpinning = true;
 
-        if (wheel) {
-            console.log("Wheel spin started."); // Debugging log
-            wheel.spinToItem(winningItemIndex, duration); // Start the spin
+            if (wheel) {
+                console.log("Wheel spin started."); // Debugging log
+                wheel.spinToItem(winningItemIndex, duration); // Start the spin
 
-            // Use setTimeout to re-enable buttons and map after the spin duration
-            setTimeout(() => {
-                console.log("Wheel spin completed."); // Debugging log
+                // Use setTimeout to re-enable buttons and map after the spin duration
+                setTimeout(() => {
+                    console.log("Wheel spin completed."); // Debugging log
+                    toggleButtons(false);
+                    isSpinning = false;
+                }, duration);
+            } else {
+                console.error("Wheel not initialized!"); // Debugging log
                 toggleButtons(false);
                 isSpinning = false;
-            }, duration);
+            }
         } else {
-            console.error("Wheel not initialized!"); // Debugging log
-            toggleButtons(false);
-            isSpinning = false;
+            alert("No nearby restaurants to spin!");
         }
-    } else {
-        alert("No nearby restaurants to spin!");
-    }
-});
+    });
 
 });
 
