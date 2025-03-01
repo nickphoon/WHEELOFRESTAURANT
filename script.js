@@ -42,7 +42,7 @@ const props = {
         // Get the restaurant details
         const restaurant = nearbyRestaurants.find(r => r.name === winningItem.label);
         if (restaurant) {
-            const [lng, lat] = restaurant.coordinates;
+            const [lat, lng] = restaurant.coordinates;
 
             // Set the chosen restaurant's marker to green
             const chosenMarker = restaurantMarkers.find(marker => marker.getLatLng().lat === lat && marker.getLatLng().lng === lng);
@@ -51,7 +51,7 @@ const props = {
             }
 
             // Create a Google Maps link for the restaurant
-            const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            const googleMapsUrl = restaurant.link || `https://www.google.com/maps?q=${lat},${lng}`;
 
             // Display the restaurant name as a clickable hyperlink
             chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... <a href="${googleMapsUrl}" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">${winningItem.label}</a>`;
@@ -63,28 +63,44 @@ const props = {
 
 
 
-// Function to load restaurants from the JSON file
 async function loadRestaurants() {
     try {
-        const response = await fetch('FilteredEatingEstablishments.geojson'); // Replace with your JSON file path
-        const data = await response.json();
+        const response = await fetch('Final.csv');
+        const csvText = await response.text();
 
-        return data.features.map(feature => {
-            const descriptionHTML = feature.properties.Description;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(descriptionHTML, 'text/html');
-
-            // Extract BUSINESS_NAME or fallback to "Unknown"
-            const businessNameCell = Array.from(doc.querySelectorAll('th')).find(th => th.textContent === 'BUSINESS_NAME');
-            const businessName = businessNameCell ? businessNameCell.nextElementSibling.textContent : "Unknown";
-
-            // Extract coordinates
-            const coordinates = feature.geometry.coordinates.slice(0, 2); // lat, lng
-
-            return {
-                name: businessName.trim(),
-                coordinates
-            };
+        return new Promise((resolve) => {
+            Papa.parse(csvText, {
+                header: true, // Treat first row as headers
+                skipEmptyLines: true,
+                complete: (result) => {
+                    const restaurants = result.data.map(row => {
+                        let coordinates;
+                        if (row.coordinates) {
+                            // If coordinates is a JSON string
+                            coordinates = JSON.parse(row.coordinates);
+                            return {
+                                name: row.name.trim(),
+                                coordinates: [coordinates.latitude, coordinates.longitude],
+                                link: row.link
+                            };
+                        } else {
+                            // If latitude and longitude are separate columns
+                            return {
+                                name: row.name.trim(),
+                                coordinates: [
+                                    parseFloat(row.latitude),
+                                    parseFloat(row.longitude)
+                                ]
+                            };
+                        }
+                    });
+                    resolve(restaurants);
+                },
+                error: (error) => {
+                    console.error("Error parsing CSV:", error);
+                    resolve([]);
+                }
+            });
         });
     } catch (error) {
         console.error("Error loading restaurants:", error);
@@ -170,7 +186,8 @@ async function applyFilters(userLocation) {
     // Filter restaurants based on proximity
     const filteredRestaurants = nearbyRestaurants
         .filter(({ coordinates }) => {
-            const [lng, lat] = coordinates; // Reverse order
+            const [lat, lng] = coordinates; // Reverse order
+            // console.log(lng,lat);
             return calculateDistance(userLocation.lat, userLocation.lng, lat, lng) <= proximity;
         });
 
