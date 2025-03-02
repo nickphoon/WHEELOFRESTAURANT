@@ -200,11 +200,12 @@ async function applyFilters(userLocation) {
     if (limitedRestaurants.length > 0) {
         resultsDiv.innerHTML = `<h3>Nearby Restaurants (Showing ${limitedRestaurants.length} of ${filteredRestaurants.length}):</h3>`;
         props.items = limitedRestaurants.map(({ name }) => ({ label: name })); // Populate wheel with restaurants
-        limitedRestaurants.forEach(({ name, coordinates }) => {
+        limitedRestaurants.forEach(({ name, coordinates, link }) => {
             const [lng, lat] = coordinates; // Reverse order for Leaflet
             const marker = L.marker([lat, lng]).addTo(map).bindPopup(name); // Leaflet expects [lat, lng]
             restaurantMarkers.push(marker); // Store marker for later removal
-            resultsDiv.innerHTML += `<p>${name}</p>`;
+            resultsDiv.innerHTML += `<p>${name} <a href="${link}" target="_blank" style="text-decoration: none; rel="noopener noreferrer">🔗</a></p>`;
+
         });
 
         refreshWheel(); // Refresh the wheel with the updated restaurant list
