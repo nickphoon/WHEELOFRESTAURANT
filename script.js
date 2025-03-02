@@ -81,7 +81,9 @@ async function loadRestaurants() {
                             return {
                                 name: row.name.trim(),
                                 coordinates: [coordinates.latitude, coordinates.longitude],
-                                link: row.link
+                                link: row.link,
+                                featured_image: row.featured_image,
+                                main_category: row.main_category
                             };
                         } else {
                             // If latitude and longitude are separate columns
@@ -168,8 +170,28 @@ function initMap(userLocation) {
     });
 }
 
+// Function to open modal
+function openImageModal(imageUrl) {
+    let modal = document.getElementById("imageModal");
+    let modalImg = document.getElementById("modalImage");
+    
+    modal.style.display = "block";
+    modalImg.src = imageUrl;
+  }
+  
+  // Function to close modal
+  function closeImageModal() {
+    document.getElementById("imageModal").style.display = "none";
+  }
 
-
+  // Function to check if the image URL is valid
+function checkImageUrl(url, callback) {
+    const img = new Image();
+    img.onload = () => callback(true);  // Image loaded successfully
+    img.onerror = () => callback(false);  // Error loading image
+  
+    img.src = url;
+  }
 // Apply filters to find and display nearby restaurants
 async function applyFilters(userLocation) {
     const proximity = parseFloat(document.getElementById("proximity").value); // Selected proximity filter
@@ -196,15 +218,30 @@ async function applyFilters(userLocation) {
 
     // Limit the filtered restaurants to the adjusted count
     const limitedRestaurants = filteredRestaurants.slice(0, count);
-
+    const defaultImage = 'images/Food.png';
     if (limitedRestaurants.length > 0) {
         resultsDiv.innerHTML = `<h3>Nearby Restaurants (Showing ${limitedRestaurants.length} of ${filteredRestaurants.length}):</h3>`;
         props.items = limitedRestaurants.map(({ name }) => ({ label: name })); // Populate wheel with restaurants
-        limitedRestaurants.forEach(({ name, coordinates, link }) => {
+        limitedRestaurants.forEach(({ name, coordinates, link, featured_image }) => {
+            // Check if the featured image is valid
+            
             const [lng, lat] = coordinates; // Reverse order for Leaflet
             const marker = L.marker([lat, lng]).addTo(map).bindPopup(name); // Leaflet expects [lat, lng]
             restaurantMarkers.push(marker); // Store marker for later removal
-            resultsDiv.innerHTML += `<p>${name} <a href="${link}" target="_blank" style="text-decoration: none; rel="noopener noreferrer">🔗</a></p>`;
+            console.log("Featured Image URL:", featured_image);
+            checkImageUrl(featured_image, function(isValid) {
+            const imageSrc = isValid ? featured_image : defaultImage;
+            resultsDiv.innerHTML += `<p> 
+  <img src="${imageSrc}" 
+       alt="Image" 
+       width="50" 
+       height="50" 
+       class="thumbnail"
+       style="vertical-align: middle; border-radius: 5px; margin-right: 10px;">
+  ${name} 
+  <a href="${link}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">🔗</a>
+</p>`;
+});
 
         });
 

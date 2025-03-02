@@ -109,9 +109,26 @@ h1 {
     font-weight: bold;
     color: black;
 }
-
+/* Hover effect */
+.thumbnail {
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+  }
+  
+  .thumbnail:hover {
+    transform: scale(3);
+  }
 /* Media Queries for Responsiveness */
 @media (max-width: 768px) {
+    /* Hover effect */
+.thumbnail {
+    transition: transform 0.3s ease-in-out;
+    cursor: pointer;
+  }
+  
+  .thumbnail:hover {
+    transform: scale(1.5);
+  }
     .container {
         flex-direction: column;
         gap: 10px;
@@ -160,6 +177,14 @@ h1 {
 }
 
 @media (max-width: 480px) {
+    .thumbnail {
+        transition: transform 0.3s ease-in-out;
+        cursor: pointer;
+      }
+      
+      .thumbnail:hover {
+        transform: scale(1.5);
+      }
     h1 {
         font-size: 30px;
     }
@@ -199,3 +224,10 @@ h1 {
         /* Further adjust results height */
     }
 }
+
+
+
+
+
+
+
