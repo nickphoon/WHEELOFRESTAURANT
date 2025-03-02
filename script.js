@@ -64,51 +64,61 @@ const props = {
 
 
 async function loadRestaurants() {
+    const csvFiles = ['dataset1.csv', 'dataset2.csv']; 
+
     try {
-        const response = await fetch('Final.csv');
-        const csvText = await response.text();
+        // Fetch all CSV files in parallel
+        const responses = await Promise.all(csvFiles.map(file => fetch(file)));
+        const csvTexts = await Promise.all(responses.map(res => res.text()));
 
         return new Promise((resolve) => {
-            Papa.parse(csvText, {
-                header: true, // Treat first row as headers
-                skipEmptyLines: true,
-                complete: (result) => {
-                    const restaurants = result.data.map(row => {
-                        let coordinates;
-                        if (row.coordinates) {
-                            // If coordinates is a JSON string
-                            coordinates = JSON.parse(row.coordinates);
-                            return {
-                                name: row.name.trim(),
-                                coordinates: [coordinates.latitude, coordinates.longitude],
-                                link: row.link,
-                                featured_image: row.featured_image,
-                                main_category: row.main_category
-                            };
-                        } else {
-                            // If latitude and longitude are separate columns
-                            return {
-                                name: row.name.trim(),
-                                coordinates: [
-                                    parseFloat(row.latitude),
-                                    parseFloat(row.longitude)
-                                ]
-                            };
-                        }
-                    });
-                    resolve(restaurants);
-                },
-                error: (error) => {
-                    console.error("Error parsing CSV:", error);
-                    resolve([]);
-                }
+            let allRestaurants = [];
+
+            csvTexts.forEach(csvText => {
+                Papa.parse(csvText, {
+                    header: true, // Treat first row as headers
+                    skipEmptyLines: true,
+                    complete: (result) => {
+                        const restaurants = result.data.map(row => {
+                            let coordinates;
+                            if (row.coordinates) {
+                                coordinates = JSON.parse(row.coordinates);
+                                return {
+                                    name: row.name.trim(),
+                                    coordinates: [coordinates.latitude, coordinates.longitude],
+                                    link: row.link,
+                                    featured_image: row.featured_image,
+                                    main_category: row.main_category
+                                };
+                            } else {
+                                return {
+                                    name: row.name.trim(),
+                                    coordinates: [
+                                        parseFloat(row.latitude),
+                                        parseFloat(row.longitude)
+                                    ]
+                                };
+                            }
+                        });
+
+                        // Merge all restaurants from all CSVs
+                        allRestaurants = allRestaurants.concat(restaurants);
+                    },
+                    error: (error) => {
+                        console.error("Error parsing CSV:", error);
+                    }
+                });
             });
+
+            // Resolve after all CSVs are parsed
+            resolve(allRestaurants);
         });
     } catch (error) {
         console.error("Error loading restaurants:", error);
         return [];
     }
 }
+
 
 // Initialize the map with Leaflet.js
 function initMap(userLocation) {
@@ -209,7 +219,7 @@ async function applyFilters(userLocation) {
     const filteredRestaurants = nearbyRestaurants
         .filter(({ coordinates }) => {
             const [lat, lng] = coordinates; // Reverse order
-            // console.log(lng,lat);
+            
             return calculateDistance(userLocation.lat, userLocation.lng, lat, lng) <= proximity;
         });
 
@@ -228,7 +238,7 @@ async function applyFilters(userLocation) {
             const [lng, lat] = coordinates; // Reverse order for Leaflet
             const marker = L.marker([lat, lng]).addTo(map).bindPopup(name); // Leaflet expects [lat, lng]
             restaurantMarkers.push(marker); // Store marker for later removal
-            console.log("Featured Image URL:", featured_image);
+           
             checkImageUrl(featured_image, function(isValid) {
             const imageSrc = isValid ? featured_image : defaultImage;
             resultsDiv.innerHTML += `<p> 
