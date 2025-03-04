@@ -24,13 +24,30 @@ const blueIcon = L.icon({
 
 const colorPattern = ["#f28c28", "#c5e0b4", "#ffc000", "#ed7d31", "#a9d18e", "#4472c4", "#70ad47", "#d9d9d9", "#ff9da7", "#c55a11"];
 
+// Function to abbreviate names longer than 15 characters
+function abbreviateName(name) {
+    if (name.length <= 25) return name;
+
+    const words = name.split(' ');
+    if (words.length === 1) return name.substring(0, 15);
+
+    let abbreviation = '';
+    if (words[0].toLowerCase() === 'the' && words.length > 1) {
+        abbreviation = 'The ';
+        words.shift();
+    }
+    abbreviation += words.map(word => word.charAt(0).toUpperCase()).join('');
+    return abbreviation;
+}
 const props = {
     items: [],
     itemBackgroundColors: [], // Colors for slices (dynamically populated)
     itemLabelColors: ["#000000"], // Change text color to black for readability
-    textSize: 20, // Adjust the text size for better visibility
+    textSize: 100, // Adjust the text size for better visibility
     textFont: "Arial", // Use a clean and readable font
+    itemLabelFontSizeMax: 200,
     isInteractive: false,
+    // itemLabelRadius: 0.9,
     pointerAngle: 180,
     onRest: (event) => {
         const chosenLabel = document.getElementById('chosenLabel');
@@ -40,7 +57,7 @@ const props = {
         restaurantMarkers.forEach(marker => marker.setIcon(blueIcon));
 
         // Get the restaurant details
-        const restaurant = nearbyRestaurants.find(r => r.name === winningItem.label);
+        const restaurant = nearbyRestaurants.find(r => abbreviateName(r.name) === winningItem.label);
         if (restaurant) {
             const [lat, lng] = restaurant.coordinates;
 
@@ -54,7 +71,7 @@ const props = {
             const googleMapsUrl = restaurant.link || `https://www.google.com/maps?q=${lat},${lng}`;
 
             // Display the restaurant name as a clickable hyperlink
-            chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... <a href="${googleMapsUrl}" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">${winningItem.label}</a>`;
+            chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... <a href="${googleMapsUrl}" target="_blank" style="color: red; font-weight: bold; text-decoration: none;">${restaurant.name}</a>`;
         } else {
             chosenLabel.innerHTML = `THE GYATTS HAS CHOSEN... ${winningItem.label}`;
         }
@@ -202,6 +219,7 @@ function checkImageUrl(url, callback) {
   
     img.src = url;
   }
+  
 // Apply filters to find and display nearby restaurants
 async function applyFilters(userLocation) {
     const proximity = parseFloat(document.getElementById("proximity").value); // Selected proximity filter
@@ -231,7 +249,7 @@ async function applyFilters(userLocation) {
     const defaultImage = 'images/Food.png';
     if (limitedRestaurants.length > 0) {
         resultsDiv.innerHTML = `<h3>Nearby Restaurants (Showing ${limitedRestaurants.length} of ${filteredRestaurants.length}):</h3>`;
-        props.items = limitedRestaurants.map(({ name }) => ({ label: name })); // Populate wheel with restaurants
+        props.items = limitedRestaurants.map(({ name }) => ({ label: abbreviateName(name) })); // Populate wheel with restaurants
         limitedRestaurants.forEach(({ name, coordinates, link, featured_image }) => {
             // Check if the featured image is valid
             
