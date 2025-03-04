@@ -2,7 +2,7 @@
 
 Spin the wheel for Restaurants near you! 🛞😋🍧
 
-Location of Restaurants is wonk , in the midst of cooking... 🧑‍🍳
+Location of Restaurants is in the midst of cooking... 🧑‍🍳
 
 ## Built With
 
