@@ -393,6 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('useCurrentLocation').disabled = disabled;
         document.getElementById('proximity').disabled = disabled;
         document.getElementById('count').disabled = disabled;
+        document.getElementById("spinDuration").disabled = disabled;
 
         const buttons = document.querySelectorAll('button, select');
         buttons.forEach(button => {
