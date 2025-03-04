@@ -190,13 +190,13 @@ h1 {
     }
 
     .wheel-container {
-        width: 350px;
-        height: 350px;
+        width: 300px;
+        height: 300px;
     }
 
     .pointer {
-        width: 40px;
-        height: 40px;
+        width: 35px;
+        height: 35px;
     }
 
     #spinButton,
