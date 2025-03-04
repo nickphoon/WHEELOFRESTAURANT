@@ -31,22 +31,37 @@
 
             <!-- Filters -->
             <div id="filters">
-                <label for="proximity">Proximity:</label>
-                <select id="proximity">
-                    <option value="0.3" selected>300m</option>
-                    <option value="0.5">500m</option>
-                    <option value="1">1km</option>
-                    <option value="2">2km</option>
-                    <option value="5">5km</option>
-                </select>
-
-                <label for="count">Nearest:</label>
-                <select id="count">
-                    <option value="10" selected>Nearest 10</option>
-                    <option value="20">Nearest 20</option>
-                    <option value="30">Nearest 30</option>
-                </select>
+                <div class="filter-row">
+                    <label for="proximity">Proximity:</label>
+                    <select id="proximity">
+                        <option value="0.3" selected>300m</option>
+                        <option value="0.5">500m</option>
+                        <option value="1">1km</option>
+                        <option value="2">2km</option>
+                        <option value="5">5km</option>
+                    </select>
+                </div>
+            
+                <div class="filter-row">
+                    <label for="count">Nearest:</label>
+                    <select id="count">
+                        <option value="10" selected>Nearest 10</option>
+                        <option value="20">Nearest 20</option>
+                        <option value="30">Nearest 30</option>
+                    </select>
+                </div>
+            
+                <div class="filter-row">
+                    <label for="spinDuration">Spin Duration:</label>
+                    <select id="spinDuration">
+                        <option value="1000">1 Second</option>
+                        <option value="2000" selected>2 Seconds</option>
+                        <option value="3000">3 Seconds</option>
+                        <option value="4000">4 Seconds</option>
+                    </select>
+                </div>
             </div>
+            
         </div>
 
         <!-- Right side: Map -->

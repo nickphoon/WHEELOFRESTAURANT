@@ -408,7 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chosenLabel.innerHTML = '';
 
         if (props.items.length > 0) {
-            const duration = 4000; // Spin duration in milliseconds
+            const duration = parseInt(document.getElementById('spinDuration').value, 10)
             const winningItemIndex = Math.floor(Math.random() * props.items.length);
 
             // Disable buttons and map interactions before spinning

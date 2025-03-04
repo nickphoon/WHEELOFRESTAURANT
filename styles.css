@@ -60,8 +60,8 @@ h1 {
 .wheel-container {
     position: relative;
     margin: 20px auto;
-    width: 500px;
-    height: 500px;
+    width: 490px;
+    height: 480px;
     border: 2px solid white;
     border-radius: 50%;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
@@ -207,6 +207,7 @@ h1 {
 
     #filters {
         font-size: 16px;
+        
     }
 
     #filters label,
