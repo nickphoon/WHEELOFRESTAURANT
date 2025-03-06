@@ -100,12 +100,15 @@ async function loadRestaurants() {
                             let coordinates;
                             if (row.coordinates) {
                                 coordinates = JSON.parse(row.coordinates);
+                                const rating = row.rating ? parseFloat(row.rating) : 0;
                                 return {
                                     name: row.name.trim(),
                                     coordinates: [coordinates.latitude, coordinates.longitude],
                                     link: row.link,
                                     featured_image: row.featured_image,
-                                    main_category: row.main_category
+                                    main_category: row.main_category,
+                                    rating: isNaN(rating) ? 0 : rating,
+                                    // priceRange: row.price_range ? row.price_range.trim() : "" // Store price range
                                 };
                             } else {
                                 return {
@@ -113,7 +116,8 @@ async function loadRestaurants() {
                                     coordinates: [
                                         parseFloat(row.latitude),
                                         parseFloat(row.longitude)
-                                    ]
+                                    ],
+                                    // priceRange: row.price_range ? row.price_range.trim() : ""
                                 };
                             }
                         });
@@ -196,20 +200,12 @@ function initMap(userLocation) {
         applyFilters({ lat, lng });
     });
 }
+// function convertPriceRange(price) {
+//     if (!price) return "N/A";
+//     const dollarCount = price.length;
+//     return dollarCount >= 10 ? "$5" : `$${Math.max(1, 6 - Math.floor(dollarCount / 2))}`;
+// }
 
-// Function to open modal
-function openImageModal(imageUrl) {
-    let modal = document.getElementById("imageModal");
-    let modalImg = document.getElementById("modalImage");
-    
-    modal.style.display = "block";
-    modalImg.src = imageUrl;
-  }
-  
-  // Function to close modal
-  function closeImageModal() {
-    document.getElementById("imageModal").style.display = "none";
-  }
 
   // Function to check if the image URL is valid
 function checkImageUrl(url, callback) {
@@ -219,12 +215,46 @@ function checkImageUrl(url, callback) {
   
     img.src = url;
   }
+
+  // Function to update maxRating options based on minRating
+function updateMaxRatingOptions() {
+    const minRating = parseFloat(document.getElementById("minRating").value);
+    const maxRatingSelect = document.getElementById("maxRating");
+    const currentMaxRating = parseFloat(maxRatingSelect.value);
+
+    const options = [
+        { value: "5", text: "⭐⭐⭐⭐⭐" },
+        { value: "4", text: "⭐⭐⭐⭐" },
+        { value: "3", text: "⭐⭐⭐" },
+        { value: "2", text: "⭐⭐" },
+        { value: "1", text: "⭐" },
+        { value: "0", text: "Any" }
+    ];
+
+    maxRatingSelect.innerHTML = "";
+    const validOptions = options.filter(option => parseFloat(option.value) >= minRating);
+    validOptions.forEach(option => {
+        const opt = document.createElement("option");
+        opt.value = option.value;
+        opt.text = option.text;
+        maxRatingSelect.appendChild(opt);
+    });
+
+    if (currentMaxRating < minRating) {
+        maxRatingSelect.value = validOptions[0].value;
+    } else {
+        maxRatingSelect.value = Math.min(currentMaxRating, validOptions[0].value).toString();
+    }
+}
+  
   
 // Apply filters to find and display nearby restaurants
 async function applyFilters(userLocation) {
     const proximity = parseFloat(document.getElementById("proximity").value); // Selected proximity filter
     const defaultCount = parseInt(document.getElementById("count").value, 10); // Selected maximum count
-
+    const minRating = parseFloat(document.getElementById("minRating").value);
+    const maxRating = parseFloat(document.getElementById("maxRating").value);
+    // const maxPrice = parseInt(document.getElementById("maxPrice").value, 10) || 5; // New price filter
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = "";
 
@@ -235,11 +265,16 @@ async function applyFilters(userLocation) {
 
     // Filter restaurants based on proximity
     const filteredRestaurants = nearbyRestaurants
-        .filter(({ coordinates }) => {
+        .filter(({ coordinates, rating }) => {
             const [lat, lng] = coordinates; // Reverse order
             
-            return calculateDistance(userLocation.lat, userLocation.lng, lat, lng) <= proximity;
-        });
+            const withinProximity = calculateDistance(userLocation.lat, userLocation.lng, lat, lng) <= proximity;
+            // Filter by rating range (inclusive)
+            const withinRatingRange = rating >= minRating && rating <= maxRating;
+            // const withinPriceRange = priceRange <= maxPrice; 
+            return withinProximity && withinRatingRange;
+        })
+        // .sort((a, b) => b.rating - a.rating);
 
     // Adjust the count dynamically based on available restaurants
     const count = Math.min(defaultCount, filteredRestaurants.length); // Use the smaller number
@@ -250,7 +285,7 @@ async function applyFilters(userLocation) {
     if (limitedRestaurants.length > 0) {
         resultsDiv.innerHTML = `<h3>Nearby Restaurants (Showing ${limitedRestaurants.length} of ${filteredRestaurants.length}):</h3>`;
         props.items = limitedRestaurants.map(({ name }) => ({ label: abbreviateName(name) })); // Populate wheel with restaurants
-        limitedRestaurants.forEach(({ name, coordinates, link, featured_image }) => {
+        limitedRestaurants.forEach(({ name, coordinates, link, featured_image, rating }) => {
             // Check if the featured image is valid
             
             const [lng, lat] = coordinates; // Reverse order for Leaflet
@@ -266,7 +301,9 @@ async function applyFilters(userLocation) {
        height="50" 
        class="thumbnail"
        style="vertical-align: middle; border-radius: 5px; margin-right: 10px;">
-  ${name} 
+  ${name}
+  <span style="margin-left: 5px;">${rating.toFixed(1)}⭐</span>
+
   <a href="${link}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">🔗</a>
 </p>`;
 });
@@ -369,6 +406,8 @@ function getUserLocation() {
 document.addEventListener("DOMContentLoaded", () => {
     const initialLocation = { lat: 1.3521, lng: 103.8198 }; // Default location (Singapore)
     initMap(initialLocation);
+    // Initialize maxRating options on page load
+    updateMaxRatingOptions();
 
     document.getElementById("useCurrentLocation").addEventListener("click", () => {
         getUserLocation(); // Use the user's current location when the button is clicked
@@ -387,12 +426,35 @@ document.addEventListener("DOMContentLoaded", () => {
             refreshWheel();
         }
     });
+    document.getElementById("minRating").addEventListener("change", () => {
+        updateMaxRatingOptions();
+        if (userMarker) {
+            applyFilters(userMarker.getLatLng());
+            refreshWheel();
+        }
+    });
+
+    document.getElementById("maxRating").addEventListener("change", () => {
+        if (userMarker) {
+            applyFilters(userMarker.getLatLng());
+            refreshWheel();
+        }
+    });
+    // document.getElementById("maxPrice").addEventListener("change", () => {
+    //     if (userMarker) {
+    //         applyFilters(userMarker.getLatLng());
+    //         refreshWheel();
+    //     }
+    // });
+    
     // Utility function to enable or disable buttons
     function toggleButtons(disabled) {
         document.getElementById('spinButton').disabled = disabled;
         document.getElementById('useCurrentLocation').disabled = disabled;
         document.getElementById('proximity').disabled = disabled;
         document.getElementById('count').disabled = disabled;
+        document.getElementById('minRating').disabled = disabled;
+        document.getElementById('maxRating').disabled = disabled;
         document.getElementById("spinDuration").disabled = disabled;
 
         const buttons = document.querySelectorAll('button, select');
